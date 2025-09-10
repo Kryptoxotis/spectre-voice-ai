@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPECTRE - Voice AI Assistant</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-blue: #0066cc;
+            --primary-teal: #00cc99;
+            --accent-red: #ff3366;
+            --bg-black: #0a0a0a;
+            --bg-gray: #1a1a1a;
+            --bg-dark-gray: #2a2a2a;
+            --text-white: #ffffff;
+            --text-gray: #b0b0b0;
+            --border-color: rgba(0, 204, 153, 0.3);
+            --glass-bg: rgba(10, 10, 10, 0.85);
+            --shadow-glow: 0 0 30px rgba(0, 204, 153, 0.3);
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, var(--bg-black) 0%, var(--bg-gray) 50%, #001122 100%);
+            background-attachment: fixed;
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 204, 153, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(0, 102, 204, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(255, 51, 102, 0.05) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(1deg); }
+            66% { transform: translateY(10px) rotate(-1deg); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            z-index: 10;
+        }
+
+        .title {
+            font-family: 'Orbitron', monospace;
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary-teal) 0%, var(--primary-blue) 50%, var(--accent-red) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-glow);
+            margin-bottom: 15px;
+            animation: pulse 3s ease-in-out infinite;
+            letter-spacing: 2px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--text-gray);
+            font-weight: 300;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+        }
+
+        .voice-interface {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-glow), 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-interface::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 204, 153, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .voice-interface:hover::before {
+            left: 100%;
+        }
+
+        .voice-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-teal) 100%);
+            color: var(--text-white);
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mic-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(0, 102, 204, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .mic-button:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .mic-button.recording {
+            background: linear-gradient(135deg, var(--accent-red) 0%, #ff6b6b 100%);
+            animation: recordingPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes recordingPulse {
+            0%, 100% { box-shadow: 0 8px 25px rgba(255, 51, 102, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 0 rgba(255, 51, 102, 0.4); }
+            50% { box-shadow: 0 8px 25px rgba(255, 51, 102, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 20px rgba(255, 51, 102, 0); }
+        }
+
+        .status {
+            font-size: 1.1rem;
+            color: var(--text-gray);
+            text-align: center;
+            min-height: 1.5rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .models-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .model-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .model-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .model-select {
+            background: var(--bg-dark-gray);
+            border: 1px solid var(--border-color);
+            color: var(--text-white);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .model-select:hover {
+            border-color: var(--primary-teal);
+            box-shadow: 0 0 10px rgba(0, 204, 153, 0.3);
+        }
+
+        .model-select:focus {
+            outline: none;
+            border-color: var(--primary-teal);
+            box-shadow: 0 0 15px rgba(0, 204, 153, 0.5);
+        }
+
+        .conversation {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 800px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            max-width: 80%;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, rgba(0, 102, 204, 0.2) 0%, rgba(0, 102, 204, 0.1) 100%);
+            border: 1px solid rgba(0, 102, 204, 0.3);
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.assistant {
+            background: linear-gradient(135deg, rgba(0, 204, 153, 0.2) 0%, rgba(0, 204, 153, 0.1) 100%);
+            border: 1px solid rgba(0, 204, 153, 0.3);
+            margin-right: auto;
+        }
+
+        .message-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .message-meta {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            opacity: 0.8;
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--bg-dark-gray) 0%, var(--bg-gray) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 204, 153, 0.3);
+            border-color: var(--primary-teal);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-teal) 100%);
+        }
+
+        .control-btn.primary:hover {
+            box-shadow: 0 8px 20px rgba(0, 102, 204, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--primary-teal);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--text-white);
+        }
+
+        /* Scrollbar styling */
+        .conversation::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .conversation::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .conversation::-webkit-scrollbar-thumb {
+            background: var(--primary-teal);
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .conversation::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-blue);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .voice-interface {
+                padding: 30px 20px;
+            }
+            
+            .mic-button {
+                width: 100px;
+                height: 100px;
+                font-size: 2rem;
+            }
+            
+            .models-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .model-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .controls-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .voice-interface {
+                padding: 20px;
+            }
+            
+            .mic-button {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">SPECTRE</h1>
+            <p class="subtitle">Intelligent Voice AI Assistant</p>
+        </div>
+
+        <div class="voice-interface">
+            <div class="voice-controls">
+                <button class="mic-button" id="micButton">🎤</button>
+                <div class="status" id="status">Click the microphone to start</div>
+                
+                <div class="models-section">
+                    <div class="model-group">
+                        <label>Provider:</label>
+                        <select class="model-select" id="providerSelect">
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                        </select>
+                    </div>
+                    <div class="model-group">
+                        <label>Model:</label>
+                        <select class="model-select" id="modelSelect">
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini</option>
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="conversation" id="conversation">
+            <div class="message assistant">
+                <div class="message-content">Hello! I'm SPECTRE, your intelligent voice AI assistant. I have access to powerful MCP tools and persistent memory. Click the microphone to start our conversation!</div>
+                <div class="message-meta">System • Ready</div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <button class="control-btn" onclick="clearConversation()">🗑️ Clear Chat</button>
+            <a href="/memory" class="control-btn">🧠 View Memory</a>
+            <a href="/tools" class="control-btn">🔧 MCP Tools</a>
+            <button class="control-btn primary" onclick="testConnection()">🔄 Test Connection</button>
+        </div>
+
+        <div class="footer">
+            <p>SPECTRE Voice AI • Enhanced with <strong>MCP Integration</strong></p>
+            <p>Powered by OpenAI & Anthropic • <a href="https://github.com/Kryptoxotis/spectre-voice-ai" target="_blank">View Source</a></p>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        let ws;
+        let isRecording = false;
+        let recognition;
+        let audioContext;
+        let userId = localStorage.getItem('spectre_user_id') || null;
+
+        // Initialize WebSocket connection
+        function initializeWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to SPECTRE server');
+                document.getElementById('status').textContent = 'Connected to SPECTRE';
+                
+                // Send user identification
+                if (userId) {
+                    ws.send(JSON.stringify({
+                        type: 'identify',
+                        userId: userId
+                    }));
+                } else {
+                    // Request new user ID
+                    ws.send(JSON.stringify({
+                        type: 'identify'
+                    }));
+                }
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received:', data);
+                
+                if (data.type === 'identified') {
+                    userId = data.userId;
+                    localStorage.setItem('spectre_user_id', userId);
+                    console.log('User identified:', userId);
+                    document.getElementById('status').textContent = `Connected as ${userId}`;
+                } else if (data.type === 'response') {
+                    addMessage('assistant', data.text, `${data.provider} • ${data.model}`);
+                    
+                    // Convert response to speech
+                    ws.send(JSON.stringify({
+                        type: 'tts',
+                        text: data.text
+                    }));
+                } else if (data.type === 'audio') {
+                    playAudio(data.audioData);
+                } else if (data.type === 'error') {
+                    console.error('Server error:', data.message);
+                    document.getElementById('status').textContent = `Error: ${data.message}`;
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                document.getElementById('status').textContent = 'Connection error';
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from server');
+                document.getElementById('status').textContent = 'Disconnected - Reconnecting...';
+                // Attempt to reconnect after 3 seconds
+                setTimeout(initializeWebSocket, 3000);
+            };
+        }
+
+        // Initialize Speech Recognition
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+            } else if ('SpeechRecognition' in window) {
+                recognition = new SpeechRecognition();
+            } else {
+                console.error('Speech recognition not supported');
+                document.getElementById('status').textContent = 'Speech recognition not supported';
+                return false;
+            }
+
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('micButton').classList.add('recording');
+                document.getElementById('status').textContent = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                console.log('Recognized:', transcript);
+                
+                addMessage('user', transcript);
+                
+                // Send to AI
+                const provider = document.getElementById('providerSelect').value;
+                const model = document.getElementById('modelSelect').value;
+                
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    provider: provider,
+                    model: model,
+                    userMessage: transcript
+                }));
+                
+                document.getElementById('status').textContent = 'Processing...';
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                isRecording = false;
+                document.getElementById('micButton').classList.remove('recording');
+                document.getElementById('status').textContent = `Recognition error: ${event.error}`;
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                document.getElementById('micButton').classList.remove('recording');
+                if (document.getElementById('status').textContent === 'Listening...') {
+                    document.getElementById('status').textContent = 'Click the microphone to start';
+                }
+            };
+
+            return true;
+        }
+
+        // Toggle microphone recording
+        function toggleRecording() {
+            if (!recognition) {
+                if (!initializeSpeechRecognition()) {
+                    return;
+                }
+            }
+
+            if (!isRecording) {
+                recognition.start();
+            } else {
+                recognition.stop();
+            }
+        }
+
+        // Play audio from base64 data
+        function playAudio(base64Data) {
+            const audioBlob = base64ToBlob(base64Data, 'audio/mp3');
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+            
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+            };
+        }
+
+        // Convert base64 to blob
+        function base64ToBlob(base64, type) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], { type });
+        }
+
+        // Add message to conversation
+        function addMessage(role, content, meta = '') {
+            const conversation = document.getElementById('conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">${content}</div>
+                <div class="message-meta">${meta || role}</div>
+            `;
+            
+            conversation.appendChild(messageDiv);
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+
+        // Clear conversation
+        function clearConversation() {
+            const conversation = document.getElementById('conversation');
+            conversation.innerHTML = `
+                <div class="message assistant">
+                    <div class="message-content">Hello! I'm SPECTRE, your intelligent voice AI assistant. I have access to powerful MCP tools and persistent memory. Click the microphone to start our conversation!</div>
+                    <div class="message-meta">System • Ready</div>
+                </div>
+            `;
+        }
+
+        // Test connection to server
+        function testConnection() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                document.getElementById('status').textContent = 'Connection test successful!';
+                setTimeout(() => {
+                    document.getElementById('status').textContent = `Connected as ${userId}`;
+                }, 2000);
+            } else {
+                document.getElementById('status').textContent = 'Connection failed - Reconnecting...';
+                initializeWebSocket();
+            }
+        }
+
+        // Handle provider change
+        document.getElementById('providerSelect').addEventListener('change', (e) => {
+            const provider = e.target.value;
+            const modelSelect = document.getElementById('modelSelect');
+            
+            // Update model options based on provider
+            if (provider === 'anthropic') {
+                modelSelect.innerHTML = `
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                    <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                `;
+            } else {
+                modelSelect.innerHTML = `
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                `;
+            }
+        });
+
+        // Event listeners
+        document.getElementById('micButton').addEventListener('click', toggleRecording);
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeWebSocket();
+            initializeSpeechRecognition();
+            
+            // Show user ID in status if available
+            if (userId) {
+                document.getElementById('status').textContent = `Ready as ${userId}`;
+            }
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.ctrlKey) {
+                e.preventDefault();
+                toggleRecording();
+            }
+        });
+    </script>
+</body>
+</html>
